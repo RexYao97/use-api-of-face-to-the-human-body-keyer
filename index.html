@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="jQuery.js"></script>
+
+
+</head>
+<body>
+　<video width="200" height="150"></video>
+
+<canvas width="200" height="150" id = "testImg"></canvas>
+<p>
+    <button id="snap" >截取图像</button>
+    <button id="save">保存图片</button>
+    <button id="close">关闭摄像头</button>
+    <button id = "cutPhoto" onclick="cutPhoto()">换背景</button>
+    <form enctype="multipart/form-data">
+    <input type="file" id="upload" onchange="uploadImage()">
+
+</form>
+
+</p>
+<canvas id="uploaded" style="margin: 0;padding: 0;" ></canvas>
+<div id = "background" >
+<canvas id ="img2" style="margin: 0;padding: 0;"></canvas>
+</div>
+
+<script>
+    //背景颜色
+          var bg_color = document.getElementById("background");
+          var bg_n = 0;
+        //var imagedata = {result : ""};//保存灰度图base64数据
+        var g_imageData ;//保存灰度图数据
+        //简单的切换背景设置
+        function cutPhoto() {
+            var color;
+            switch (bg_n){
+                case 0: color = "black"; bg_n++;break;
+                case 1: color = "green"; bg_n++;break;
+                case 2: color = "red"; bg_n++;break;
+                case 3: color = "white"; bg_n++;break;
+                case 4: color = "blue"; bg_n=0;break;
+            }
+            bg_color.style.backgroundColor = color;
+        }
+
+        var saveimage = document.getElementById("save");
+        //保存图片事件
+        saveimage.addEventListener('click',function () {
+            alert("11");
+            var mycanvas = document.getElementById("testImg");
+            var image = mycanvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+            window.location.href=image;
+
+        },false);
+        //上传图片和获得灰度图的json文件
+
+        function uploadImage() {
+
+            //灰度图的canvas
+            var CANVAS=document.getElementById('uploaded');
+            var context=CANVAS.getContext('2d');
+            //上传图片的canvas
+            var CANVAS2=document.getElementById('img2');
+            var context2=CANVAS2.getContext('2d');
+            //获取上传图片的地址
+            var r = new FileReader();
+            var f = document.getElementById('upload').files[0];
+
+            //API 接口
+            let url = 'https://api-cn.faceplusplus.com/humanbodypp/v1/segment';
+            //去除文件地址的file前缀
+            let files = $('#upload').prop('files');
+            //ajax的传入的对象
+            let data = new FormData();
+            //添加接口密码和账号图片地址
+            data.append('api_key', "qe8LFyw4tDiz50wdhWMT8vzz0hz3uG5o");
+            data.append('api_secret', "1A1NxBWXLrk_ArS2lULqm4kz8UztBVt6");
+            data.append('image_file',files[0]);
+            //jquery http请求
+            $.ajax({
+                url: url, type: 'POST', data: data, cache: false, processData: false, contentType: false,
+                //成功时调用的函数
+                success(data) {
+                    var img=new Image();
+                    //img加载完后执行画图
+
+
+
+                    //画出灰度图
+                    img.onload=function() {
+                        context.drawImage(img,0,0,200,150 );
+                        //获取灰度图的信息 用于修改原图的透明度
+                        g_imageData = context.getImageData(0,0,200,150);
+
+
+                    };
+                    var img_base64 ="data:image/png;base64,"+data.result;
+                    img.src=img_base64;
+
+                    //显示
+
+
+                    //图片处理和显示
+                    r.readAsDataURL(f);
+                    r.onload = function(e)
+                    {
+                        var img2=new Image();
+                        img2.onload=function(){
+
+
+                            context2.drawImage(img2,0,0,200,150 );
+                            //获取图片的信息
+                            var onload_imgData = context2.getImageData(0,0,200,150);
+                            //修改图片 根据灰度图
+                            for (var i = 0,len=g_imageData.data.length;i<len;i+=4){
+                                //每4个为一个像素点的信息 最后一个是透明度的信息 修改通明度
+                                onload_imgData.data[i+3] = g_imageData.data[i];
+                            };
+                            //将修改过的图片信息画出来
+                            context2.putImageData(onload_imgData,0,0);
+                            bg_color.style.width="200px";
+                            bg_color.style.height="150px";
+                            bg_color.style.backgroundColor="blue";
+                        };
+
+                        img2.src= this.result;
+                        //保存文件地址图片
+
+                    }
+                }
+            });
+
+        };
+
+
+
+
+
+
+</script>
+</body>
+</html>
